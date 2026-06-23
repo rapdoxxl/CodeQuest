@@ -1,0 +1,310 @@
+import { useState, useEffect } from 'react'
+import { useParams, Link } from 'react-router-dom'
+import api from '../services/api'
+import { CoachFeedback, Level as LevelType } from '../types'
+import { useAuthStore } from '../store/authStore'
+
+type HintItem = {
+  stage: number
+  stageName: string
+  hint: string
+  maxStars: number
+  hintLevel: number
+  hintUsed: boolean
+}
+
+type SubmitResult = {
+  stars: number
+  passed: boolean
+  message?: string
+  maxStars?: number
+  hintUsed?: boolean
+  hintLevel?: number
+  compileOutput?: string
+  runtimeOutput?: string
+  actualOutput?: string
+  coach?: CoachFeedback
+}
+
+export default function Level() {
+  const { id } = useParams<{ id: string }>()
+  const [level, setLevel] = useState<LevelType | null>(null)
+  const [answer, setAnswer] = useState('')
+  const [hints, setHints] = useState<HintItem[]>([])
+  const [lockedMessage, setLockedMessage] = useState('')
+  const [result, setResult] = useState<SubmitResult | null>(null)
+  const [loading, setLoading] = useState(false)
+  const updateUser = useAuthStore((state) => state.updateUser)
+
+  const formatErrorBlock = (text?: string) => {
+    if (!text) return ''
+
+    return text
+      .split('\n')
+      .map((line) => line.trim())
+      .filter(Boolean)
+      .slice(0, 4)
+      .join('\n')
+  }
+
+  useEffect(() => {
+    if (!id) return
+
+    setLevel(null)
+    setAnswer('')
+    setHints([])
+    setLockedMessage('')
+    setResult(null)
+    setLoading(false)
+    fetchLevel(id)
+  }, [id])
+
+  const fetchLevel = async (levelId: string) => {
+    try {
+      const res = await api.get(`/levels/${levelId}`)
+      setLevel(res.data)
+      setHints([])
+      setLockedMessage('')
+      setAnswer(res.data.starterCode || '')
+    } catch (err: any) {
+      setLevel(null)
+      setAnswer('')
+      setResult(null)
+      setLockedMessage(err.response?.data?.message || '当前关卡暂未解锁')
+    }
+  }
+
+  const handleSubmit = async () => {
+    if (!level) return
+    setLoading(true)
+    try {
+      const res = await api.post(`/levels/${level.id}/submit`, { answer })
+      setResult(res.data)
+      setLevel({
+        ...level,
+        completed: level.completed || res.data.passed,
+        stars: Math.max(level.stars || 0, res.data.stars || 0),
+        hintUsed: res.data.hintUsed,
+        hintLevel: res.data.hintLevel
+      })
+      if (res.data.user) {
+        updateUser(res.data.user)
+      }
+    } catch (err: any) {
+      alert(err.response?.data?.message || '提交失败')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleHint = async (stage: number) => {
+    if (!level) return
+
+    const confirmText =
+      stage === 1
+        ? '方向提示只做思路引导，不会降低本关最高星级。确定查看吗？'
+        : stage === 2
+          ? '关键概念提示会让本关最高只能获得 2 星。确定查看吗？'
+          : '局部代码提示更接近答案，本关最高只能获得 1 星。确定查看吗？'
+    const confirmed = window.confirm(confirmText)
+    if (!confirmed) return
+
+    try {
+      const res = await api.post(`/levels/${level.id}/hint`, { stage })
+      setHints((prev) => {
+        const next = prev.filter((item) => item.stage !== res.data.stage)
+        return [...next, res.data].sort((a, b) => a.stage - b.stage)
+      })
+      setLevel({ ...level, hintUsed: true, hintLevel: res.data.hintLevel })
+    } catch (err) {
+      alert('提示暂时不可用')
+    }
+  }
+
+  const addNote = async () => {
+    const title = prompt('笔记标题：')
+    if (!title) return
+    const content = prompt('笔记内容：')
+    if (!content) return
+    try {
+      await api.post('/notes', { title, content, levelId: level?.id, tags: [] })
+      alert('笔记保存成功！')
+    } catch (err) {
+      alert('保存失败')
+    }
+  }
+
+  const renderCoach = () => {
+    if (!result?.coach) {
+      return (
+        <div style={{ border: '2px solid #333', padding: '16px', marginTop: '16px' }}>
+          <h3>AI 辅导区</h3>
+          <p>提交代码后，诊断 Agent 会根据编译、运行和输出结果给出反馈。</p>
+          <p>你也可以先查看方向提示，系统会用问题引导你自己找到下一步。</p>
+        </div>
+      )
+    }
+
+    const coach = result.coach
+
+    return (
+      <div style={{ border: '2px solid #333', padding: '16px', marginTop: '16px' }}>
+        <h3>AI 辅导区</h3>
+        <h4>代码诊断 Agent：{coach.diagnosis.title}</h4>
+        <ul>
+          {coach.diagnosis.details.map((item, index) => (
+            <li key={index}>{item}</li>
+          ))}
+        </ul>
+
+        <h4>苏格拉底式提示 Agent</h4>
+        <ol>
+          {coach.socraticQuestions.map((question, index) => (
+            <li key={index}>{question}</li>
+          ))}
+        </ol>
+        <p><strong>下一步：</strong>{coach.nextStep}</p>
+
+        <h4>总结反馈 Agent</h4>
+        {coach.summary.mastered.length > 0 && (
+          <p>本关已掌握：{coach.summary.mastered.join(' / ')}</p>
+        )}
+        <p>{coach.summary.keepPracticing}</p>
+      </div>
+    )
+  }
+
+  if (lockedMessage) {
+    return (
+      <div style={{ padding: '24px' }}>
+        <Link to="/map">返回地图</Link>
+        <h1>关卡未解锁</h1>
+        <p>{lockedMessage}</p>
+      </div>
+    )
+  }
+
+  if (!level) return <div>加载中...</div>
+
+  const currentHintLevel = level.hintLevel || 0
+  const currentMaxStars = currentHintLevel >= 3 ? 1 : currentHintLevel >= 2 ? 2 : 3
+
+  return (
+    <div style={{ padding: '24px', maxWidth: '980px' }}>
+      <Link to="/map">返回地图</Link>
+      <h1>第{level.number}关：{level.title}</h1>
+      <p>难度：{level.difficulty === 'easy' ? '简单' : level.difficulty === 'medium' ? '中等' : '困难'}</p>
+      {level.goal && (
+        <div>
+          <h3>学习目标</h3>
+          <p>{level.goal}</p>
+        </div>
+      )}
+      <div>
+        <h3>关卡说明</h3>
+        <p style={{ whiteSpace: 'pre-wrap' }}>{level.content}</p>
+      </div>
+      {level.knowledgePoints && level.knowledgePoints.length > 0 && (
+        <div>
+          <h3>知识点</h3>
+          <p>{level.knowledgePoints.join(' / ')}</p>
+        </div>
+      )}
+      <div>
+        <h3>题目</h3>
+        <p style={{ whiteSpace: 'pre-wrap' }}>{level.question}</p>
+      </div>
+      {level.starterCode && (
+        <div>
+          <h3>代码模板</h3>
+          <pre style={{ background: '#f5f5f5', padding: '12px', whiteSpace: 'pre-wrap' }}>
+            {level.starterCode}
+          </pre>
+        </div>
+      )}
+
+      {currentHintLevel > 0 && (
+        <p style={{ color: '#b26a00' }}>
+          已查看到第 {currentHintLevel} 段提示，本关当前最高可获得 {currentMaxStars} 星。
+        </p>
+      )}
+      {hints.length > 0 && (
+        <div style={{ border: '1px solid #999', padding: '12px', margin: '12px 0' }}>
+          <h3>分层提示</h3>
+          {hints.map((item) => (
+            <div key={item.stage} style={{ marginBottom: '10px' }}>
+              <strong>{item.stageName}</strong>
+              <p>{item.hint}</p>
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div>
+        <h3>提交代码</h3>
+        <textarea
+          value={answer}
+          onChange={(e) => setAnswer(e.target.value)}
+          placeholder="输入你的代码或答案"
+          rows={14}
+          style={{ width: '100%', fontFamily: 'Consolas, monospace' }}
+        />
+        <br />
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '8px' }}>
+          <button onClick={handleSubmit} disabled={loading}>
+            {loading ? '提交中...' : '提交答案'}
+          </button>
+          <button onClick={() => handleHint(1)}>方向提示</button>
+          <button onClick={() => handleHint(2)}>关键概念提示</button>
+          <button onClick={() => handleHint(3)}>局部代码提示</button>
+          <button onClick={addNote}>记笔记</button>
+        </div>
+      </div>
+
+      {result && (
+        <div style={{ marginTop: '16px' }}>
+          <h3>结果</h3>
+          <p>{result.passed ? '通过' : '未通过'}</p>
+          <p>获得商城星星：{'⭐'.repeat(result.stars)}{'☆'.repeat(3 - result.stars)}</p>
+          {(result.hintUsed || (result.maxStars ?? 3) !== 3) && (
+            <p>提示等级：{result.hintLevel || 0}，本次最高奖励为 {result.maxStars ?? 3} 星。</p>
+          )}
+          {result.message && <p>{result.message}</p>}
+          {result.actualOutput && (
+            <div>
+              <h4>程序实际输出</h4>
+              <pre style={{ background: '#f5f5f5', padding: '12px', whiteSpace: 'pre-wrap' }}>
+                {result.actualOutput}
+              </pre>
+            </div>
+          )}
+          {result.compileOutput && (
+            <div>
+              <h4>编译提示</h4>
+              <pre style={{ background: '#fff1f0', padding: '12px', whiteSpace: 'pre-wrap' }}>
+                {formatErrorBlock(result.compileOutput)}
+              </pre>
+            </div>
+          )}
+          {result.runtimeOutput && (
+            <div>
+              <h4>运行提示</h4>
+              <pre style={{ background: '#fff7e6', padding: '12px', whiteSpace: 'pre-wrap' }}>
+                {formatErrorBlock(result.runtimeOutput)}
+              </pre>
+            </div>
+          )}
+          <div style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+            <button onClick={() => { setResult(null); setAnswer(level.starterCode || '') }}>重置模板</button>
+            {result.passed && level.id < 50 && (
+              <Link to={`/level/${level.id + 1}`}>进入下一关</Link>
+            )}
+            <Link to="/map">返回地图</Link>
+          </div>
+        </div>
+      )}
+
+      {renderCoach()}
+    </div>
+  )
+}

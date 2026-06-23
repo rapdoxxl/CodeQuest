@@ -1,0 +1,27 @@
+# Dependencies
+node_modules/
+yarn.lock
+pnpm-lock.yaml
+
+# Build outputs
+dist/
+build/
+
+# Database
+server/data/
+
+# IDE
+.vscode/
+.idea/
+
+# Environment
+.env
+.env.local
+
+# Logs
+*.log
+npm-debug.log*
+
+# OS
+.DS_Store
+Thumbs.db
