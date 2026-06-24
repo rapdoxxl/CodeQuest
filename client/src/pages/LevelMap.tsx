@@ -44,17 +44,23 @@ export default function LevelMap() {
 
   return (
     <div style={{ padding: '24px' }}>
-      <h1>关卡地图</h1>
-      <Link to="/">返回首页</Link>
-      <div style={{ margin: '16px 0', padding: '12px', border: '2px solid #333', maxWidth: '520px' }}>
-        <strong>推荐继续：</strong>
-        {recommendedLevel ? (
-          <Link to={`/level/${recommendedLevel.id}`} style={{ marginLeft: '8px' }}>
-            第 {recommendedLevel.id} 关：{recommendedLevel.title}
-          </Link>
-        ) : (
-          <span style={{ marginLeft: '8px' }}>当前已没有已解锁且未完成的关卡</span>
-        )}
+      <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px', flexWrap: 'wrap', alignItems: 'flex-start' }}>
+        <div>
+          <h1>关卡地图</h1>
+          <nav style={{ display: 'flex', gap: '12px', flexWrap: 'wrap', marginTop: '8px' }}>
+            <Link to="/">返回首页</Link>
+            <Link to="/achievements">成就系统</Link>
+          </nav>
+        </div>
+        <div style={{ marginTop: '8px' }}>
+          {recommendedLevel ? (
+            <Link to={`/level/${recommendedLevel.id}`}>
+              继续第 {recommendedLevel.id} 关：{recommendedLevel.title}
+            </Link>
+          ) : (
+            <span>当前已没有已解锁且未完成的关卡</span>
+          )}
+        </div>
       </div>
       
       {chapters.map(chapter => (

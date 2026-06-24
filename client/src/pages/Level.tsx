@@ -209,8 +209,8 @@ export default function Level() {
       return (
         <div style={{ border: '2px solid #333', padding: '16px', marginTop: '16px' }}>
           <h3>AI 辅导区</h3>
-          <p>提交代码后，我会先帮你判断卡在哪里，再给下一步怎么改。</p>
-          <p>如果暂时没思路，可以先看方向提示。它只提醒思路，不会直接把答案塞给你。</p>
+          <p>先写一版能运行的代码，提交后我会告诉你：哪里对了、哪里卡住、下一步先改哪一行。</p>
+          <p>没思路时先点方向提示。它只帮你把题拆开，不会直接把答案塞给你，也不会扣星。</p>
         </div>
       )
     }
@@ -264,7 +264,10 @@ export default function Level() {
 
   return (
     <div style={{ padding: '24px', maxWidth: '980px' }}>
-      <Link to="/map">返回地图</Link>
+      <nav style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
+        <Link to="/map">返回地图</Link>
+        <Link to="/achievements">成就系统</Link>
+      </nav>
       <h1>第{level.number}关：{level.title}</h1>
       <p>难度：{level.difficulty === 'easy' ? '简单' : level.difficulty === 'medium' ? '中等' : '困难'}</p>
       {level.goal && (
