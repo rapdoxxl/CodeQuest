@@ -88,6 +88,25 @@ export interface LearningProfile {
   }>
 }
 
+export interface Achievement {
+  id: number
+  key: string
+  name: string
+  description: string
+  category: 'mainline' | 'mastery' | 'agent'
+  metric: string
+  target: number
+  unlocked: boolean
+  unlockedAt: string | null
+}
+
+export interface AchievementSummary {
+  unlockedCount: number
+  totalCount: number
+  achievements: Achievement[]
+  unlockedNow: Achievement[]
+}
+
 export interface Note {
   id: number
   userId: number

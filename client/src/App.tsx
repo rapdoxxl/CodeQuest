@@ -9,6 +9,7 @@ import KnowledgeGraph from './pages/KnowledgeGraph'
 import Shop from './pages/Shop'
 import Leaderboard from './pages/Leaderboard'
 import Profile from './pages/Profile'
+import Achievements from './pages/Achievements'
 
 function App() {
   const { isAuthenticated } = useAuthStore()
@@ -22,6 +23,7 @@ function App() {
         <Route path="/map" element={isAuthenticated ? <LevelMap /> : <Navigate to="/login" />} />
         <Route path="/level/:id" element={isAuthenticated ? <Level /> : <Navigate to="/login" />} />
         <Route path="/knowledge" element={isAuthenticated ? <KnowledgeGraph /> : <Navigate to="/login" />} />
+        <Route path="/achievements" element={isAuthenticated ? <Achievements /> : <Navigate to="/login" />} />
         <Route path="/shop" element={isAuthenticated ? <Shop /> : <Navigate to="/login" />} />
         <Route path="/ladder" element={isAuthenticated ? <Leaderboard /> : <Navigate to="/login" />} />
         <Route path="/leaderboard" element={isAuthenticated ? <Leaderboard /> : <Navigate to="/login" />} />

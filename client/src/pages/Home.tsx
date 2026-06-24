@@ -2,32 +2,20 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { useAuthStore } from '../store/authStore'
 import api from '../services/api'
-import { LearningProfile, Level } from '../types'
+import { LearningProfile } from '../types'
 
 export default function Home() {
   const { user, logout } = useAuthStore()
-  const [levels, setLevels] = useState<Level[]>([])
   const [profile, setProfile] = useState<LearningProfile | null>(null)
-  const [loadingLevels, setLoadingLevels] = useState(true)
   const starBalance = user?.starBalance ?? user?.totalStars ?? 0
-  const nextLevel = [...levels]
-    .sort((a, b) => a.id - b.id)
-    .find(level => !level.locked && !level.completed)
 
   useEffect(() => {
     const fetchDashboard = async () => {
       try {
-        const [levelsRes, profileRes] = await Promise.all([
-          api.get('/levels'),
-          api.get('/learning/profile')
-        ])
-        setLevels(levelsRes.data)
+        const profileRes = await api.get('/learning/profile')
         setProfile(profileRes.data)
       } catch {
-        setLevels([])
         setProfile(null)
-      } finally {
-        setLoadingLevels(false)
       }
     }
 
@@ -72,31 +60,10 @@ export default function Home() {
         )}
       </div>
 
-      <div style={{ margin: '20px 0', padding: '16px', border: '2px solid #333', maxWidth: '520px' }}>
-        {loadingLevels ? (
-          <>
-            <h2>读取进度中...</h2>
-            <p>正在查找你下一关要挑战的内容。</p>
-          </>
-        ) : nextLevel ? (
-          <>
-            <h2>继续第 {nextLevel.id} 关</h2>
-            <p>{nextLevel.title}</p>
-            {nextLevel.goal && <p>{nextLevel.goal}</p>}
-            <Link to={`/level/${nextLevel.id}`}>进入第 {nextLevel.id} 关</Link>
-          </>
-        ) : (
-          <>
-            <h2>新手村已完成</h2>
-            <p>当前已没有已解锁且未完成的关卡。</p>
-            <Link to="/map">查看全部关卡</Link>
-          </>
-        )}
-      </div>
-
       <nav style={{ display: 'flex', gap: '12px', flexWrap: 'wrap' }}>
         <Link to="/map">查看全部关卡</Link>
         <Link to="/knowledge">知识图谱</Link>
+        <Link to="/achievements">成就系统</Link>
         <Link to="/shop">商城</Link>
         <Link to="/ladder">算法天梯</Link>
         <Link to="/profile">个人中心</Link>

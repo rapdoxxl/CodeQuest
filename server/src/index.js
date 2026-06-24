@@ -557,57 +557,59 @@ const hasKnowledge = (level, keywords = []) => {
 
 const buildDirectionHint = (level) => {
   const points = getLevelKnowledgePoints(level).slice(0, 3)
-  const focus = points.length > 0 ? `本关重点在 ${points.join('、')}。` : '先把题目拆成输入、处理、输出三步。'
+  const focus = points.length > 0 ? `这关主要练 ${points.join('、')}。` : '这关先按“要什么、怎么算、怎么输出”来拆。'
 
   if (hasKnowledge(level, ['循环', 'for', 'while'])) {
-    return `${focus}先别急着写完整代码，先问自己：循环从哪里开始，到哪里结束，每一轮要改变哪个变量？`
+    return `${focus}先别急着补代码，先把循环想清楚：从哪个数开始，到哪个数停，每一轮哪个变量要变。想清楚这三件事，代码基本就顺了。`
   }
 
   if (hasKnowledge(level, ['数组'])) {
-    return `${focus}先确认数组里有哪些元素、要访问哪个下标，或者需要遍历每个元素做什么。`
+    return `${focus}先看数组里有什么，再想你是要拿某一个位置，还是要把每个元素都走一遍。Java 的下标从 0 开始，这里很容易差一位。`
   }
 
   if (hasKnowledge(level, ['方法', 'return'])) {
-    return `${focus}先分清 main 方法负责调用，另一个方法负责计算并返回结果。`
+    return `${focus}把任务分给两个地方：main 负责调用和输出，另一个方法负责算出结果并 return 回来。`
   }
 
   if (hasKnowledge(level, ['if', '判断', '比较'])) {
-    return `${focus}先把条件用一句话说清楚：什么时候走第一个分支，什么时候走另一个分支。`
+    return `${focus}先用自己的话说清楚条件：什么时候算通过，什么时候走另外一条路。能说清楚，if 里的表达式就好写。`
   }
 
-  return `${focus}先保证 Main 类和 main 方法结构完整，再在 main 方法里完成题目要求的最小输出。`
+  return `${focus}先保住 Java 的外壳：Main 类、main 方法、花括号。然后只在 main 里面完成题目要求的最小输出。`
 }
 
 const buildConceptHint = (level) => {
   if (hasKnowledge(level, ['循环', 'for'])) {
-    return 'for 循环通常包含三部分：初始化变量、继续循环的条件、每轮结束后的更新。先确认这三部分是否都写完整。'
+    return 'for 循环可以当成一句话读：先让 i 等于多少；只要 i 满足什么条件就继续；每轮结束后 i 怎么变。把这三段补完整就行。'
   }
 
   if (hasKnowledge(level, ['while'])) {
-    return 'while 循环要特别注意循环条件和变量更新；如果变量没有变化，循环可能无法正确结束。'
+    return 'while 更像“只要条件还成立，就一直做”。所以一定要在循环里改变条件相关的变量，不然程序会一直转。'
   }
 
   if (hasKnowledge(level, ['数组'])) {
-    return 'Java 数组下标从 0 开始；遍历数组时，可以用普通 for，也可以用增强 for 读取每个元素。'
+    return '数组的第一个位置是 0，不是 1。要看每个元素时，可以用增强 for；要指定第几个位置时，就用下标。'
   }
 
   if (hasKnowledge(level, ['方法', 'return'])) {
-    return '有返回值的方法需要写 return；调用方法时，传入的参数类型和数量要与方法定义保持一致。'
+    return '有返回值的方法最后要把答案 return 出去。调用它的时候，传进去的参数数量和类型要跟方法定义对上。'
   }
 
   if (hasKnowledge(level, ['String', '字符串'])) {
-    return '字符串文本要放在双引号中；比较字符串内容时通常使用 equals()，拼接字符串可以使用 +。'
+    return '字符串就是文字，文字要放在双引号里。拼接可以用 +；比较两个字符串内容时，用 equals() 更稳。'
   }
 
   if (hasKnowledge(level, ['if', '判断', '比较'])) {
-    return 'if 后面的条件必须是 boolean 表达式，比如 score >= 60。条件成立时执行 if 代码块，否则进入 else。'
+    return 'if 后面要放一个能判断真假的条件，比如 score >= 60。条件为真走 if，条件为假才走 else。'
   }
 
-  return 'Java 程序入口通常是 public static void main(String[] args)，输出可以使用 System.out.println(...)。'
+  return 'Java 程序先从 public static void main(String[] args) 开始跑。要把结果显示出来，就放进 System.out.println(...)。'
 }
 
 const buildLocalCodeHint = (level) =>
-  level.hint || '补齐题目要求中的关键表达式即可，不需要改动完整代码结构。'
+  level.hint
+    ? `可以先只补这一小块：${level.hint}`
+    : '先别大改结构，只补题目缺的那个关键表达式，能跑起来后再慢慢调整。'
 
 const buildHintPayload = (level, requestedStage, highestHintLevel) => {
   const stage = Math.min(3, Math.max(1, Number(requestedStage) || 1))
@@ -655,30 +657,30 @@ const buildSocraticQuestions = (level, errorType) => {
   const questions = []
 
   if (errorType === 'compile_error') {
-    questions.push('Main 类、main 方法、花括号和分号都完整吗？')
-    questions.push('报错位置附近，上一行有没有少写符号？')
+    questions.push('先看程序外壳：Main 类、main 方法、花括号是不是都成对出现了？')
+    questions.push('报错那一行别只看本行，也看看上一行是不是少了分号或括号。')
   } else if (errorType === 'runtime_error') {
-    questions.push('程序运行到哪一步会失败？变量在那一刻可能是什么值？')
-    questions.push('有没有数组下标越界、除以 0 或空对象调用的风险？')
+    questions.push('想象程序跑到出错那一步时，每个变量大概是什么值？')
+    questions.push('有没有访问不存在的数组位置、除以 0，或者用了还没准备好的对象？')
   } else if (errorType === 'output_mismatch' || errorType === 'near_miss') {
-    questions.push('题目要求的输出内容、大小写、空格和换行，你的程序是否完全一致？')
-    questions.push('如果只看核心逻辑，当前输出离目标还差哪一小步？')
+    questions.push('把题目输出和你的输出逐字对一下：大小写、空格、换行有没有差一点？')
+    questions.push('如果核心思路已经对了，现在只差改哪一个小地方？')
   } else if (errorType === 'passed') {
-    questions.push('如果把题目里的数字换掉，你的代码还成立吗？')
-    questions.push('这关用到的模式，能不能迁移到下一道类似题？')
+    questions.push('如果题目里的数字换掉，你这份代码还能不能跟着变？')
+    questions.push('这关的写法像一个小模板，下一题哪里也能用到它？')
   } else {
-    questions.push('题目要求你最终输出什么？中间需要哪些变量或步骤？')
-    questions.push('能不能先写出最小可运行版本，再逐步补细节？')
+    questions.push('这题最后到底要输出什么？先把目标写在脑子里。')
+    questions.push('能不能先写一个最小能运行的版本，再补计算细节？')
   }
 
   if (hasKnowledge(level, ['循环', 'for', 'while'])) {
-    questions.push('循环变量的初始值、结束条件和更新方向是否匹配题目范围？')
+    questions.push('循环变量从哪开始、在哪结束、每轮怎么变，这三件事和题目范围对得上吗？')
   } else if (hasKnowledge(level, ['数组'])) {
-    questions.push('你访问的是第几个元素？对应的数组下标应该是多少？')
+    questions.push('你要的是第几个元素？换成 Java 下标应该是多少？')
   } else if (hasKnowledge(level, ['方法', 'return'])) {
-    questions.push('方法应该返回结果，还是直接在方法里输出？')
+    questions.push('这个方法应该把结果 return 出去，还是直接在里面打印？')
   } else if (hasKnowledge(level, ['if', '判断', '比较'])) {
-    questions.push('条件表达式是否覆盖了题目里的通过和不通过两种情况？')
+    questions.push('你的条件有没有同时照顾到“满足”和“不满足”两种情况？')
   }
 
   return questions.slice(0, 3)
@@ -689,25 +691,25 @@ const buildCoachFeedback = ({ level, evaluation, stars, answer, hintLevel }) => 
   const details = []
 
   if (errorType === 'passed') {
-    details.push(stars === 3 ? '本次代码通过，并且输出完全符合要求。' : '本次代码已经达到通过标准，但还有格式或细节可以继续打磨。')
+    details.push(stars === 3 ? '这次很稳，代码能跑，输出也和题目完全对上了。' : '这次已经过关了，只是格式或细节还可以再收紧一点。')
   } else if (evaluation.compileOutput) {
-    details.push('代码还没有进入运行阶段，先处理语法或编译问题。')
+    details.push('先别急着想结果，程序现在还没编译过去。先把语法这个门槛过掉。')
     details.push(formatSingleLine(evaluation.compileOutput))
   } else if (evaluation.runtimeOutput) {
-    details.push('代码可以编译，但运行过程中出现问题。')
+    details.push('语法已经过了，问题出在运行过程中。接下来要看变量值和执行步骤。')
     details.push(formatSingleLine(evaluation.runtimeOutput))
   } else if (evaluation.actualOutput !== undefined) {
-    details.push('代码可以运行，主要问题集中在输出内容与题目目标不一致。')
-    details.push(`当前实际输出：${String(evaluation.actualOutput || '(空输出)').slice(0, 80)}`)
+    details.push('代码已经能跑起来，离答案不远了。现在重点对输出内容。')
+    details.push(`你现在输出的是：${String(evaluation.actualOutput || '(空输出)').slice(0, 80)}`)
   } else {
-    details.push('当前答案还没有满足题目的关键结构或关键输出要求。')
+    details.push('这份答案还没有抓住题目的关键结构。先回到题目要求，别一次改太多。')
   }
 
   const knowledgePoints = getLevelKnowledgePoints(level)
   const keepPracticing =
     stars >= 3
-      ? '可以继续挑战下一关，保持用“读题-拆步骤-写代码-对输出”的节奏。'
-      : `建议先复盘：${knowledgePoints.slice(0, 3).join('、') || '本关核心知识'}。`
+      ? '可以去下一关了。继续保持：先读题，再拆步骤，最后对输出。'
+      : `建议先把 ${knowledgePoints.slice(0, 3).join('、') || '本关核心知识'} 这几个点再顺一遍。`
 
   return {
     errorType,
@@ -718,8 +720,8 @@ const buildCoachFeedback = ({ level, evaluation, stars, answer, hintLevel }) => 
     socraticQuestions: buildSocraticQuestions(level, errorType),
     nextStep:
       errorType === 'passed'
-        ? '尝试不用模板重新写一遍，确认自己真正掌握了结构。'
-        : '先回答上面的引导问题，再改动最小的一处代码后重新提交。',
+        ? '可以试着不看模板重写一遍。能写出来，就是真的会了。'
+        : '先别整段重写。回答上面的问题，然后只改最小的一处，再提交看看。',
     summary: {
       mastered: stars > 0 ? knowledgePoints.slice(0, 3) : [],
       keepPracticing
@@ -967,6 +969,67 @@ const buildLearningProfile = (userId) => {
   }
 }
 
+const getAchievementMetrics = (userId) => ({
+  completedCount: db.data.progress.filter(item => item.userId === userId && item.completed).length,
+  threeStarCount: db.data.progress.filter(item => item.userId === userId && item.completed && item.stars >= 3).length,
+  hintCount: (db.data.learningEvents || []).filter(item => item.userId === userId && item.errorType === 'hint_used').length,
+  learningEventCount: (db.data.learningEvents || []).filter(item => item.userId === userId).length
+})
+
+const syncUserAchievements = (userId) => {
+  db.data.achievements = db.data.achievements || []
+  db.data.userAchievements = db.data.userAchievements || []
+
+  const metrics = getAchievementMetrics(userId)
+  const unlockedNow = []
+
+  db.data.achievements.forEach((achievement) => {
+    const metricValue = metrics[achievement.metric] || 0
+    const owned = db.data.userAchievements.some(
+      item => item.userId === userId && item.achievementKey === achievement.key
+    )
+
+    if (!owned && metricValue >= achievement.target) {
+      const userAchievement = {
+        id: getNextId(db.data.userAchievements),
+        userId,
+        achievementId: achievement.id,
+        achievementKey: achievement.key,
+        unlockedAt: new Date().toISOString()
+      }
+      db.data.userAchievements.push(userAchievement)
+      unlockedNow.push({ ...achievement, unlockedAt: userAchievement.unlockedAt })
+    }
+  })
+
+  return unlockedNow
+}
+
+const getAchievementSummary = (userId) => {
+  const unlockedNow = syncUserAchievements(userId)
+  const unlockedMap = new Map(
+    db.data.userAchievements
+      .filter(item => item.userId === userId)
+      .map(item => [item.achievementKey, item])
+  )
+
+  const achievements = db.data.achievements.map((achievement) => {
+    const unlocked = unlockedMap.get(achievement.key)
+    return {
+      ...achievement,
+      unlocked: Boolean(unlocked),
+      unlockedAt: unlocked?.unlockedAt || null
+    }
+  })
+
+  return {
+    unlockedNow,
+    unlockedCount: achievements.filter(item => item.unlocked).length,
+    totalCount: achievements.length,
+    achievements
+  }
+}
+
 const toPublicLevel = (level, userId) => {
   const progress = getProgress(userId, level.id)
   const { answer, hint, answerKeywords, expectedOutput, ...publicLevel } = level
@@ -1184,6 +1247,8 @@ app.post('/api/levels/:id/submit', auth, async (req, res) => {
     answer,
     hintLevel: currentHintLevel
   })
+
+  const unlockedAchievements = syncUserAchievements(req.userId)
   
   await db.write()
   
@@ -1207,6 +1272,7 @@ app.post('/api/levels/:id/submit', auth, async (req, res) => {
     compileOutput: evaluation.compileOutput,
     runtimeOutput: evaluation.runtimeOutput,
     actualOutput: evaluation.actualOutput,
+    achievements: unlockedAchievements,
     coach
   })
 })
@@ -1222,6 +1288,15 @@ app.get('/api/learning/profile', auth, async (req, res) => {
   await db.read()
   db.data.learningEvents = db.data.learningEvents || []
   res.json(buildLearningProfile(req.userId))
+})
+
+app.get('/api/achievements', auth, async (req, res) => {
+  await db.read()
+  const summary = getAchievementSummary(req.userId)
+  if (summary.unlockedNow.length > 0) {
+    await db.write()
+  }
+  res.json(summary)
 })
 
 // 笔记路由

@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import api from '../services/api'
-import { CoachFeedback, Level as LevelType } from '../types'
+import { Achievement, CoachFeedback, Level as LevelType } from '../types'
 import { useAuthStore } from '../store/authStore'
 
 type HintItem = {
@@ -23,6 +23,7 @@ type SubmitResult = {
   compileOutput?: string
   runtimeOutput?: string
   actualOutput?: string
+  achievements?: Achievement[]
   coach?: CoachFeedback
 }
 
@@ -139,8 +140,8 @@ export default function Level() {
       return (
         <div style={{ border: '2px solid #333', padding: '16px', marginTop: '16px' }}>
           <h3>AI 辅导区</h3>
-          <p>提交代码后，诊断 Agent 会根据编译、运行和输出结果给出反馈。</p>
-          <p>你也可以先查看方向提示，系统会用问题引导你自己找到下一步。</p>
+          <p>提交代码后，我会先帮你判断卡在哪里，再给下一步怎么改。</p>
+          <p>如果暂时没思路，可以先看方向提示。它只提醒思路，不会直接把答案塞给你。</p>
         </div>
       )
     }
@@ -150,22 +151,22 @@ export default function Level() {
     return (
       <div style={{ border: '2px solid #333', padding: '16px', marginTop: '16px' }}>
         <h3>AI 辅导区</h3>
-        <h4>代码诊断 Agent：{coach.diagnosis.title}</h4>
+        <h4>这次卡在哪里：{coach.diagnosis.title}</h4>
         <ul>
           {coach.diagnosis.details.map((item, index) => (
             <li key={index}>{item}</li>
           ))}
         </ul>
 
-        <h4>苏格拉底式提示 Agent</h4>
+        <h4>我会这样追问你</h4>
         <ol>
           {coach.socraticQuestions.map((question, index) => (
             <li key={index}>{question}</li>
           ))}
         </ol>
-        <p><strong>下一步：</strong>{coach.nextStep}</p>
+        <p><strong>下一步怎么做：</strong>{coach.nextStep}</p>
 
-        <h4>总结反馈 Agent</h4>
+        <h4>这关小结</h4>
         {coach.summary.mastered.length > 0 && (
           <p>本关已掌握：{coach.summary.mastered.join(' / ')}</p>
         )}
@@ -270,6 +271,17 @@ export default function Level() {
             <p>提示等级：{result.hintLevel || 0}，本次最高奖励为 {result.maxStars ?? 3} 星。</p>
           )}
           {result.message && <p>{result.message}</p>}
+          {result.achievements && result.achievements.length > 0 && (
+            <div style={{ border: '1px solid #333', padding: '12px', margin: '12px 0' }}>
+              <h4>刚解锁的成就</h4>
+              <ul>
+                {result.achievements.map((achievement) => (
+                  <li key={achievement.key}>{achievement.name}：{achievement.description}</li>
+                ))}
+              </ul>
+              <Link to="/achievements">查看成就系统</Link>
+            </div>
+          )}
           {result.actualOutput && (
             <div>
               <h4>程序实际输出</h4>

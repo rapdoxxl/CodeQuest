@@ -741,6 +741,63 @@ const courseLevels = [
   ...javaAdvancedDraftLevels
 ]
 
+const defaultAchievements = [
+  {
+    id: 1,
+    key: 'first_clear',
+    name: '冒险启程',
+    description: '第一次通关主线关卡。',
+    category: 'mainline',
+    metric: 'completedCount',
+    target: 1
+  },
+  {
+    id: 2,
+    key: 'first_three_star',
+    name: '三星初体验',
+    description: '第一次以 3 星完成关卡。',
+    category: 'mastery',
+    metric: 'threeStarCount',
+    target: 1
+  },
+  {
+    id: 3,
+    key: 'five_clears',
+    name: '新手村熟面孔',
+    description: '累计通关 5 个开放关卡。',
+    category: 'mainline',
+    metric: 'completedCount',
+    target: 5
+  },
+  {
+    id: 4,
+    key: 'ten_clears',
+    name: '稳定推进者',
+    description: '累计通关 10 个开放关卡。',
+    category: 'mainline',
+    metric: 'completedCount',
+    target: 10
+  },
+  {
+    id: 5,
+    key: 'first_hint',
+    name: '会问问题的人',
+    description: '第一次使用分层提示。',
+    category: 'agent',
+    metric: 'hintCount',
+    target: 1
+  },
+  {
+    id: 6,
+    key: 'ten_learning_events',
+    name: '持续练习',
+    description: '累计产生 10 次学习事件。',
+    category: 'agent',
+    metric: 'learningEventCount',
+    target: 10
+  }
+]
+
 function upsertCourseLevels() {
   const nextLevels = [...db.data.levels]
 
@@ -755,6 +812,25 @@ function upsertCourseLevels() {
 
   db.data.levels = nextLevels
     .filter((level) => level.id >= 1 && level.id <= 100)
+    .sort((a, b) => a.id - b.id)
+}
+
+function upsertAchievements() {
+  const nextAchievements = [...db.data.achievements]
+
+  defaultAchievements.forEach((achievement) => {
+    const index = nextAchievements.findIndex((item) => item.key === achievement.key)
+    if (index >= 0) {
+      nextAchievements[index] = { ...nextAchievements[index], ...achievement }
+    } else {
+      nextAchievements.push(achievement)
+    }
+  })
+
+  db.data.achievements = nextAchievements
+    .filter((achievement) =>
+      defaultAchievements.some((item) => item.key === achievement.key)
+    )
     .sort((a, b) => a.id - b.id)
 }
 
@@ -780,7 +856,10 @@ function normalizeDataShape() {
 
   db.data.ladderProblems = db.data.ladderProblems || []
   db.data.achievements = db.data.achievements || []
-  db.data.userAchievements = db.data.userAchievements || []
+  db.data.userAchievements = (db.data.userAchievements || []).map((item) => ({
+    ...item,
+    unlockedAt: item.unlockedAt || new Date().toISOString()
+  }))
   db.data.learningEvents = db.data.learningEvents || []
 }
 
@@ -813,6 +892,12 @@ async function initDB() {
     db.data.levels = courseLevels
   } else {
     upsertCourseLevels()
+  }
+
+  if (db.data.achievements.length === 0) {
+    db.data.achievements = defaultAchievements
+  } else {
+    upsertAchievements()
   }
   
   await db.write()
