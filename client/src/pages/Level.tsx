@@ -32,6 +32,8 @@ export default function Level() {
   const [level, setLevel] = useState<LevelType | null>(null)
   const [answer, setAnswer] = useState('')
   const [hints, setHints] = useState<HintItem[]>([])
+  const [aiHelp, setAiHelp] = useState('')
+  const [aiHelpLoading, setAiHelpLoading] = useState(false)
   const [lockedMessage, setLockedMessage] = useState('')
   const [result, setResult] = useState<SubmitResult | null>(null)
   const [loading, setLoading] = useState(false)
@@ -54,6 +56,8 @@ export default function Level() {
     setLevel(null)
     setAnswer('')
     setHints([])
+    setAiHelp('')
+    setAiHelpLoading(false)
     setLockedMessage('')
     setResult(null)
     setLoading(false)
@@ -65,6 +69,7 @@ export default function Level() {
       const res = await api.get(`/levels/${levelId}`)
       setLevel(res.data)
       setHints([])
+      setAiHelp('')
       setLockedMessage('')
       setAnswer(res.data.starterCode || '')
     } catch (err: any) {
@@ -95,6 +100,20 @@ export default function Level() {
       alert(err.response?.data?.message || '提交失败')
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleAiHelp = async () => {
+    if (!level) return
+
+    setAiHelpLoading(true)
+    try {
+      const res = await api.post('/ai/help', { levelId: level.id })
+      setAiHelp(res.data.help)
+    } catch (err) {
+      alert('AI 导学暂时不可用')
+    } finally {
+      setAiHelpLoading(false)
     }
   }
 
@@ -223,6 +242,19 @@ export default function Level() {
           </pre>
         </div>
       )}
+
+      <div style={{ border: '2px solid #333', padding: '12px', margin: '12px 0' }}>
+        <h3>课前 AI 导学</h3>
+        <p>还没开始写也可以先问我，我会先帮你拆题，不会直接给答案，也不会影响本关星级。</p>
+        <button type="button" onClick={handleAiHelp} disabled={aiHelpLoading}>
+          {aiHelpLoading ? '正在想...' : '问 AI 导师'}
+        </button>
+        {aiHelp && (
+          <pre style={{ background: '#f5f5f5', padding: '12px', marginTop: '12px', whiteSpace: 'pre-wrap' }}>
+            {aiHelp}
+          </pre>
+        )}
+      </div>
 
       {currentHintLevel > 0 && (
         <p style={{ color: '#b26a00' }}>
