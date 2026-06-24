@@ -21,6 +21,7 @@ const errorTypeLabels: Record<string, string> = {
   answer_mismatch: '结构偏差',
   passed: '已通过',
   hint_used: '查看提示',
+  ai_help_used: 'AI 导学',
   low_star_progress: '低星进度'
 }
 

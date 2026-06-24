@@ -544,6 +544,11 @@ const getHintStageName = (stage = 1) => {
   return '局部代码提示'
 }
 
+const NON_SCORING_EVENT_TYPES = new Set(['hint_used', 'ai_help_used'])
+
+const isScoringLearningEvent = (event = {}) =>
+  !NON_SCORING_EVENT_TYPES.has(event.errorType)
+
 const getLevelKnowledgePoints = (level) =>
   Array.isArray(level?.knowledgePoints) ? level.knowledgePoints : []
 
@@ -818,7 +823,9 @@ const calculatePercent = (value, total) =>
   total > 0 ? Math.round((value / total) * 100) : 0
 
 const getLearningRiskLevel = ({ weakKnowledge, recentEvents }) => {
-  const recentWeakSignals = recentEvents.filter(event => event.stars < 3).length
+  const recentWeakSignals = recentEvents.filter(event =>
+    isScoringLearningEvent(event) && event.stars < 3
+  ).length
   const strongestWeakSignal = weakKnowledge[0]?.weakSignals || 0
 
   if (recentWeakSignals >= 3 || strongestWeakSignal >= 5) return 'high'
@@ -867,10 +874,11 @@ const buildLearningProfile = (userId) => {
   const events = (db.data.learningEvents || [])
     .filter(event => event.userId === userId)
     .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt))
+  const scoringEvents = events.filter(isScoringLearningEvent)
   const pointStats = new Map()
   const strengths = new Map()
 
-  events.forEach((event) => {
+  scoringEvents.forEach((event) => {
     const points = Array.isArray(event.knowledgePoints) ? event.knowledgePoints : []
     points.forEach((point) => {
       if (!pointStats.has(point)) {
@@ -1466,9 +1474,14 @@ app.get('/api/leaderboard/school', auth, async (req, res) => {
 // AI辅导路由
 app.post('/api/ai/help', auth, async (req, res) => {
   await db.read()
+  db.data.learningEvents = db.data.learningEvents || []
   const { levelId } = req.body
   const level = db.data.levels.find(l => l.id === levelId)
   if (!level) return res.status(404).json({ message: '关卡不存在' })
+  if (level.draft) return res.status(403).json({ message: '本关正在制作中，暂未开放 AI 导学。' })
+  if (!isLevelUnlocked(req.userId, Number(levelId))) {
+    return res.status(403).json({ message: '请先通关上一关，再查看当前关卡导学。' })
+  }
   
   const help = [
     `题目：${level.title}`,
@@ -1476,8 +1489,22 @@ app.post('/api/ai/help', auth, async (req, res) => {
     `引导问题：${buildSocraticQuestions(level, 'answer_mismatch').join(' ')}`,
     `方向提示：${buildDirectionHint(level)}`
   ].join('\n\n')
+
+  db.data.learningEvents.push({
+    id: getNextId(db.data.learningEvents),
+    userId: req.userId,
+    levelId: level.id,
+    stars: 0,
+    passed: false,
+    errorType: 'ai_help_used',
+    hintLevel: 0,
+    knowledgePoints: getLevelKnowledgePoints(level),
+    createdAt: new Date().toISOString()
+  })
+  const achievements = syncUserAchievements(req.userId)
+  await db.write()
   
-  res.json({ help })
+  res.json({ help, achievements })
 })
 
 app.listen(PORT, () => {
