@@ -117,6 +117,25 @@ export default function Level() {
     }
   }
 
+  const saveAiHelpAsNote = async () => {
+    if (!level || !aiHelp) return
+
+    const title = `第${level.number}关 AI 导学：${level.title}`
+    const content = [
+      aiHelp,
+      '',
+      `关卡目标：${level.goal || '完成本关核心任务'}`
+    ].join('\n')
+    const tags = ['AI导学', ...(level.knowledgePoints || []).slice(0, 3)]
+
+    try {
+      await api.post('/notes', { title, content, levelId: level.id, tags, links: [] })
+      alert('AI 导学已保存到知识图谱！')
+    } catch (err) {
+      alert('保存 AI 导学失败')
+    }
+  }
+
   const handleHint = async (stage: number) => {
     if (!level) return
 
@@ -250,9 +269,14 @@ export default function Level() {
           {aiHelpLoading ? '正在想...' : '问 AI 导师'}
         </button>
         {aiHelp && (
-          <pre style={{ background: '#f5f5f5', padding: '12px', marginTop: '12px', whiteSpace: 'pre-wrap' }}>
-            {aiHelp}
-          </pre>
+          <div>
+            <pre style={{ background: '#f5f5f5', padding: '12px', marginTop: '12px', whiteSpace: 'pre-wrap' }}>
+              {aiHelp}
+            </pre>
+            <button type="button" onClick={saveAiHelpAsNote}>
+              保存导学到知识图谱
+            </button>
+          </div>
         )}
       </div>
 
