@@ -3,6 +3,7 @@ import { JSONFile } from 'lowdb/node'
 import path from 'path'
 import { fileURLToPath } from 'url'
 import { mkdir } from 'fs/promises'
+import bcrypt from 'bcryptjs'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -30,6 +31,9 @@ const defaultData = {
 }
 
 const db = new Low(adapter, defaultData)
+
+const getNextId = (items = []) =>
+  items.length > 0 ? Math.max(...items.map(item => item.id || 0)) + 1 : 1
 
 const beginnerLevels = [
   {
@@ -863,6 +867,79 @@ function normalizeDataShape() {
   db.data.learningEvents = db.data.learningEvents || []
 }
 
+async function ensureDemoAccount() {
+  const existingDemo = db.data.users.find((user) => user.username === 'demo')
+  if (existingDemo) return
+
+  const userId = getNextId(db.data.users)
+  const createdAt = new Date().toISOString()
+  const password = await bcrypt.hash('123456', 10)
+
+  db.data.users.push({
+    id: userId,
+    username: 'demo',
+    password,
+    gender: 'male',
+    starBalance: 8,
+    totalStars: 8,
+    totalScore: 80,
+    ladderScore: 120,
+    ladderSolved: 3,
+    avatarFrame: null,
+    classId: 1,
+    skinFace: '默认脸型',
+    skinHair: '默认发型',
+    skinCoat: '默认外套',
+    createdAt
+  })
+
+  ;[1, 5, 9].forEach((skinId) => {
+    db.data.userSkins.push({
+      id: getNextId(db.data.userSkins),
+      userId,
+      skinId
+    })
+  })
+
+  const demoProgress = [
+    { levelId: 1, stars: 3, score: 30, hintLevel: 0 },
+    { levelId: 2, stars: 2, score: 20, hintLevel: 2 },
+    { levelId: 3, stars: 3, score: 30, hintLevel: 0 }
+  ]
+
+  demoProgress.forEach((item) => {
+    db.data.progress.push({
+      userId,
+      levelId: item.levelId,
+      stars: item.stars,
+      score: item.score,
+      completed: true,
+      hintUsed: item.hintLevel > 0,
+      hintLevel: item.hintLevel
+    })
+  })
+
+  const addLearningEvent = ({ levelId, stars, errorType, hintLevel = 0 }) => {
+    const level = db.data.levels.find((item) => item.id === levelId)
+    db.data.learningEvents.push({
+      id: getNextId(db.data.learningEvents),
+      userId,
+      levelId,
+      stars,
+      passed: stars >= 1,
+      errorType,
+      hintLevel,
+      knowledgePoints: Array.isArray(level?.knowledgePoints) ? level.knowledgePoints : [],
+      createdAt: new Date().toISOString()
+    })
+  }
+
+  addLearningEvent({ levelId: 1, stars: 3, errorType: 'passed' })
+  addLearningEvent({ levelId: 2, stars: 0, errorType: 'hint_used', hintLevel: 2 })
+  addLearningEvent({ levelId: 2, stars: 2, errorType: 'near_miss', hintLevel: 2 })
+  addLearningEvent({ levelId: 3, stars: 3, errorType: 'passed' })
+}
+
 // 初始化数据库
 async function initDB() {
   await mkdir(path.dirname(file), { recursive: true })
@@ -899,6 +976,8 @@ async function initDB() {
   } else {
     upsertAchievements()
   }
+
+  await ensureDemoAccount()
   
   await db.write()
 }
