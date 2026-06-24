@@ -52,6 +52,12 @@ export interface CoachFeedback {
 export interface LearningProfile {
   completedCount: number
   threeStarCount: number
+  openLevelCount: number
+  completionRate: number
+  masteryRate: number
+  riskLevel: 'low' | 'medium' | 'high'
+  agentSummary: string
+  nextActions: string[]
   attempts: number
   weakKnowledge: Array<{
     name: string

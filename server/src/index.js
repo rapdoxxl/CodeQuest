@@ -812,6 +812,55 @@ const getLearningRecommendation = (userId, weakPoint = '') => {
   }
 }
 
+const calculatePercent = (value, total) =>
+  total > 0 ? Math.round((value / total) * 100) : 0
+
+const getLearningRiskLevel = ({ weakKnowledge, recentEvents }) => {
+  const recentWeakSignals = recentEvents.filter(event => event.stars < 3).length
+  const strongestWeakSignal = weakKnowledge[0]?.weakSignals || 0
+
+  if (recentWeakSignals >= 3 || strongestWeakSignal >= 5) return 'high'
+  if (recentWeakSignals > 0 || strongestWeakSignal > 0) return 'medium'
+  return 'low'
+}
+
+const buildAgentSummary = ({ completedCount, openLevelCount, threeStarCount, attempts, topWeakPoint }) => {
+  if (attempts === 0) {
+    return '学习画像 Agent 已就绪，完成一次提交后会开始识别薄弱知识点并生成路径建议。'
+  }
+
+  const progressText = `已完成 ${completedCount}/${openLevelCount} 个开放关卡，${threeStarCount} 关达到 3 星掌握。`
+  const focusText = topWeakPoint
+    ? `当前最需要关注的是 ${topWeakPoint}。`
+    : '近期没有明显连续薄弱点。'
+
+  return `${progressText}${focusText}`
+}
+
+const buildNextActions = ({ recommendation, topWeakPoint, riskLevel, masteryRate }) => {
+  const actions = []
+
+  if (recommendation.levelId) {
+    actions.push(`优先进入第 ${recommendation.levelId} 关：${recommendation.title}。`)
+  } else {
+    actions.push('回到关卡地图补齐低星关卡，保持学习链路不断档。')
+  }
+
+  if (topWeakPoint) {
+    actions.push(`复盘 ${topWeakPoint} 相关题目，先追求稳定通过，再补到 3 星。`)
+  }
+
+  if (riskLevel === 'high') {
+    actions.push('连续低星或提示使用较多，下一题建议先读题拆步骤，再提交最小可运行版本。')
+  } else if (masteryRate < 70) {
+    actions.push('优先把已通过但不足 3 星的关卡补强，提升知识点掌握稳定度。')
+  } else {
+    actions.push('保持当前节奏，继续挑战下一关并记录关键思路。')
+  }
+
+  return actions.slice(0, 3)
+}
+
 const buildLearningProfile = (userId) => {
   const events = (db.data.learningEvents || [])
     .filter(event => event.userId === userId)
@@ -880,18 +929,41 @@ const buildLearningProfile = (userId) => {
   const topWeakPoint = weakKnowledge[0]?.name || ''
   const completedCount = db.data.progress.filter(item => item.userId === userId && item.completed).length
   const threeStarCount = db.data.progress.filter(item => item.userId === userId && item.completed && item.stars >= 3).length
+  const openLevelCount = db.data.levels.filter(level => !level.draft).length
+  const recentEvents = events.slice(0, 5)
+  const recommendation = getLearningRecommendation(userId, topWeakPoint)
+  const completionRate = calculatePercent(completedCount, openLevelCount)
+  const masteryRate = calculatePercent(threeStarCount, completedCount)
+  const riskLevel = getLearningRiskLevel({ weakKnowledge, recentEvents })
 
   return {
     completedCount,
     threeStarCount,
+    openLevelCount,
+    completionRate,
+    masteryRate,
+    riskLevel,
+    agentSummary: buildAgentSummary({
+      completedCount,
+      openLevelCount,
+      threeStarCount,
+      attempts: events.length,
+      topWeakPoint
+    }),
     attempts: events.length,
     weakKnowledge,
     strengths: [...strengths.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 5)
       .map(([name, count]) => ({ name, count })),
-    recommendation: getLearningRecommendation(userId, topWeakPoint),
-    recentEvents: events.slice(0, 5)
+    recommendation,
+    nextActions: buildNextActions({
+      recommendation,
+      topWeakPoint,
+      riskLevel,
+      masteryRate
+    }),
+    recentEvents
   }
 }
 
