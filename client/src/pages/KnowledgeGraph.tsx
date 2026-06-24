@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useRef } from 'react'
+import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link } from 'react-router-dom'
 import ReactFlow, {
   addEdge,
@@ -17,32 +17,62 @@ import { Note } from '../types'
 export default function KnowledgeGraph() {
   const [notes, setNotes] = useState<Note[]>([])
   const [selectedNote, setSelectedNote] = useState<Note | null>(null)
+  const [activeFilter, setActiveFilter] = useState('all')
   const [nodes, setNodes, onNodesChange] = useNodesState([])
   const [edges, setEdges, onEdgesChange] = useEdgesState([])
   const reactFlowWrapper = useRef<HTMLDivElement>(null)
+
+  const filteredNotes = useMemo(() => {
+    if (activeFilter === 'all') return notes
+    if (activeFilter === 'manual') {
+      return notes.filter(note => !note.tags.includes('AI导学') && !note.tags.includes('AI复盘'))
+    }
+
+    return notes.filter(note => note.tags.includes(activeFilter))
+  }, [activeFilter, notes])
+
+  const filterOptions = [
+    { id: 'all', label: '全部', count: notes.length },
+    { id: 'AI导学', label: 'AI 导学', count: notes.filter(note => note.tags.includes('AI导学')).length },
+    { id: 'AI复盘', label: 'AI 复盘', count: notes.filter(note => note.tags.includes('AI复盘')).length },
+    {
+      id: 'manual',
+      label: '手动笔记',
+      count: notes.filter(note => !note.tags.includes('AI导学') && !note.tags.includes('AI复盘')).length
+    }
+  ]
 
   useEffect(() => {
     fetchNotes()
   }, [])
 
   useEffect(() => {
-    const newNodes: Node[] = notes.map((note, index) => ({
+    const visibleNoteIds = new Set(filteredNotes.map(note => note.id))
+    const newNodes: Node[] = filteredNotes.map((note, index) => ({
       id: note.id.toString(),
       data: { label: note.title },
       position: { x: (index % 5) * 200, y: Math.floor(index / 5) * 150 }
     }))
 
-    const newEdges: Edge[] = notes.flatMap(note =>
-      note.links.map(linkedNoteId => ({
-        id: `e-${note.id}-${linkedNoteId}`,
-        source: note.id.toString(),
-        target: linkedNoteId.toString()
-      }))
+    const newEdges: Edge[] = filteredNotes.flatMap(note =>
+      note.links
+        .filter(linkedNoteId => visibleNoteIds.has(linkedNoteId))
+        .map(linkedNoteId => ({
+          id: `e-${note.id}-${linkedNoteId}`,
+          source: note.id.toString(),
+          target: linkedNoteId.toString()
+        }))
     )
 
     setNodes(newNodes)
     setEdges(newEdges)
-  }, [notes, setNodes, setEdges])
+  }, [filteredNotes, setNodes, setEdges])
+
+  useEffect(() => {
+    if (selectedNote && !filteredNotes.some(note => note.id === selectedNote.id)) {
+      setSelectedNote(null)
+    }
+  }, [filteredNotes, selectedNote])
 
   const fetchNotes = async () => {
     const res = await api.get('/notes')
@@ -87,7 +117,26 @@ export default function KnowledgeGraph() {
     <div>
       <Link to="/">返回首页</Link>
       <h1>知识图谱</h1>
-      <button onClick={createNote}>新建笔记</button>
+      <div style={{ display: 'flex', gap: '8px', alignItems: 'center', flexWrap: 'wrap', margin: '12px 0' }}>
+        <button onClick={createNote}>新建笔记</button>
+        {filterOptions.map((option) => (
+          <button
+            key={option.id}
+            type="button"
+            onClick={() => setActiveFilter(option.id)}
+            style={{
+              fontWeight: activeFilter === option.id ? 700 : 400,
+              border: activeFilter === option.id ? '2px solid #333' : '1px solid #aaa',
+              background: activeFilter === option.id ? '#eef4ff' : '#fff'
+            }}
+          >
+            {option.label} ({option.count})
+          </button>
+        ))}
+      </div>
+      <p style={{ marginBottom: '12px' }}>
+        当前显示 {filteredNotes.length} 条笔记。AI 导学和 AI 复盘会自动带标签，便于展示智能体如何沉淀学习资产。
+      </p>
       
       <div style={{ display: 'flex', height: '80vh' }}>
         <div ref={reactFlowWrapper} style={{ flex: 1 }}>
