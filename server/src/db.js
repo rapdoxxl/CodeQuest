@@ -2,6 +2,7 @@ import { Low } from 'lowdb'
 import { JSONFile } from 'lowdb/node'
 import path from 'path'
 import { fileURLToPath } from 'url'
+import { mkdir } from 'fs/promises'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -785,6 +786,7 @@ function normalizeDataShape() {
 
 // 初始化数据库
 async function initDB() {
+  await mkdir(path.dirname(file), { recursive: true })
   await db.read()
   normalizeDataShape()
   
