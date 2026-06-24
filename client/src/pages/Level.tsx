@@ -173,6 +173,37 @@ export default function Level() {
     }
   }
 
+  const saveCoachAsNote = async () => {
+    if (!level || !result?.coach) return
+
+    const coach = result.coach
+    const title = `第${level.number}关 AI 复盘：${level.title}`
+    const content = [
+      `结果：${result.passed ? '通过' : '未通过'}，获得 ${result.stars} 星。`,
+      '',
+      `诊断：${coach.diagnosis.title}`,
+      ...coach.diagnosis.details.map((item) => `- ${item}`),
+      '',
+      '引导问题：',
+      ...coach.socraticQuestions.map((question, index) => `${index + 1}. ${question}`),
+      '',
+      `下一步：${coach.nextStep}`,
+      '',
+      coach.summary.mastered.length > 0
+        ? `已掌握：${coach.summary.mastered.join(' / ')}`
+        : '已掌握：暂未形成稳定掌握点',
+      coach.summary.keepPracticing
+    ].join('\n')
+    const tags = ['AI复盘', ...(level.knowledgePoints || []).slice(0, 3)]
+
+    try {
+      await api.post('/notes', { title, content, levelId: level.id, tags, links: [] })
+      alert('AI 复盘已保存到知识图谱！')
+    } catch (err) {
+      alert('保存 AI 复盘失败')
+    }
+  }
+
   const renderCoach = () => {
     if (!result?.coach) {
       return (
@@ -209,6 +240,9 @@ export default function Level() {
           <p>本关已掌握：{coach.summary.mastered.join(' / ')}</p>
         )}
         <p>{coach.summary.keepPracticing}</p>
+        <button type="button" onClick={saveCoachAsNote}>
+          保存复盘到知识图谱
+        </button>
       </div>
     )
   }
