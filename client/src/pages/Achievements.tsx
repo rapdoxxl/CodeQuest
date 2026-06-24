@@ -64,30 +64,46 @@ export default function Achievements() {
         <p style={{ marginTop: '16px' }}>成就数据暂时读取失败，请稍后再试。</p>
       ) : (
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(240px, 1fr))', gap: '14px', marginTop: '18px' }}>
-          {summary.achievements.map((achievement) => (
-            <article
-              key={achievement.key}
-              style={{
-                border: '2px solid #333',
-                borderRadius: '8px',
-                padding: '14px',
-                background: achievement.unlocked ? '#fff' : '#f4f4f4',
-                opacity: achievement.unlocked ? 1 : 0.72
-              }}
-            >
-              <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
-                <strong>{achievement.name}</strong>
-                <span>{achievement.unlocked ? '已解锁' : '未解锁'}</span>
-              </div>
-              <p style={{ marginTop: '8px', lineHeight: 1.6 }}>{achievement.description}</p>
-              <p style={{ marginTop: '8px' }}>
-                分类：{categoryLabels[achievement.category] || achievement.category}
-              </p>
-              {achievement.unlockedAt && (
-                <p style={{ marginTop: '4px' }}>解锁时间：{formatDate(achievement.unlockedAt)}</p>
-              )}
-            </article>
-          ))}
+          {summary.achievements.map((achievement) => {
+            const progressValue = Math.min(achievement.currentValue, achievement.target)
+            const progressPercent = achievement.target > 0
+              ? Math.min(100, Math.round((progressValue / achievement.target) * 100))
+              : 0
+
+            return (
+              <article
+                key={achievement.key}
+                style={{
+                  border: '2px solid #333',
+                  borderRadius: '8px',
+                  padding: '14px',
+                  background: achievement.unlocked ? '#fff' : '#f4f4f4',
+                  opacity: achievement.unlocked ? 1 : 0.72
+                }}
+              >
+                <div style={{ display: 'flex', justifyContent: 'space-between', gap: '12px' }}>
+                  <strong>{achievement.name}</strong>
+                  <span>{achievement.unlocked ? '已解锁' : '未解锁'}</span>
+                </div>
+                <p style={{ marginTop: '8px', lineHeight: 1.6 }}>{achievement.description}</p>
+                <p style={{ marginTop: '8px' }}>
+                  分类：{categoryLabels[achievement.category] || achievement.category}
+                </p>
+                <div style={{ marginTop: '10px' }}>
+                  <div style={{ display: 'flex', justifyContent: 'space-between', gap: '10px', marginBottom: '6px' }}>
+                    <span>进度</span>
+                    <span>{progressValue} / {achievement.target}</span>
+                  </div>
+                  <div style={{ height: '8px', background: '#e0e0e0', borderRadius: '999px', overflow: 'hidden' }}>
+                    <div style={{ width: `${progressPercent}%`, height: '100%', background: achievement.unlocked ? '#1f7a4d' : '#2f6fed' }} />
+                  </div>
+                </div>
+                {achievement.unlockedAt && (
+                  <p style={{ marginTop: '4px' }}>解锁时间：{formatDate(achievement.unlockedAt)}</p>
+                )}
+              </article>
+            )
+          })}
         </div>
       )}
     </div>

@@ -1007,6 +1007,7 @@ const syncUserAchievements = (userId) => {
 
 const getAchievementSummary = (userId) => {
   const unlockedNow = syncUserAchievements(userId)
+  const metrics = getAchievementMetrics(userId)
   const unlockedMap = new Map(
     db.data.userAchievements
       .filter(item => item.userId === userId)
@@ -1017,6 +1018,7 @@ const getAchievementSummary = (userId) => {
     const unlocked = unlockedMap.get(achievement.key)
     return {
       ...achievement,
+      currentValue: metrics[achievement.metric] || 0,
       unlocked: Boolean(unlocked),
       unlockedAt: unlocked?.unlockedAt || null
     }

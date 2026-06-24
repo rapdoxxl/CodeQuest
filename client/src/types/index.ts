@@ -96,6 +96,7 @@ export interface Achievement {
   category: 'mainline' | 'mastery' | 'agent'
   metric: string
   target: number
+  currentValue: number
   unlocked: boolean
   unlockedAt: string | null
 }
