@@ -33,6 +33,7 @@ export default function Level() {
   const [answer, setAnswer] = useState('')
   const [hints, setHints] = useState<HintItem[]>([])
   const [aiHelp, setAiHelp] = useState('')
+  const [aiHelpAchievements, setAiHelpAchievements] = useState<Achievement[]>([])
   const [aiHelpLoading, setAiHelpLoading] = useState(false)
   const [lockedMessage, setLockedMessage] = useState('')
   const [result, setResult] = useState<SubmitResult | null>(null)
@@ -57,6 +58,7 @@ export default function Level() {
     setAnswer('')
     setHints([])
     setAiHelp('')
+    setAiHelpAchievements([])
     setAiHelpLoading(false)
     setLockedMessage('')
     setResult(null)
@@ -70,6 +72,7 @@ export default function Level() {
       setLevel(res.data)
       setHints([])
       setAiHelp('')
+      setAiHelpAchievements([])
       setLockedMessage('')
       setAnswer(res.data.starterCode || '')
     } catch (err: any) {
@@ -110,6 +113,7 @@ export default function Level() {
     try {
       const res = await api.post('/ai/help', { levelId: level.id })
       setAiHelp(res.data.help)
+      setAiHelpAchievements(res.data.achievements || [])
     } catch (err) {
       alert('AI 导学暂时不可用')
     } finally {
@@ -202,6 +206,22 @@ export default function Level() {
     } catch (err) {
       alert('保存 AI 复盘失败')
     }
+  }
+
+  const renderAchievementUnlocks = (achievements?: Achievement[]) => {
+    if (!achievements || achievements.length === 0) return null
+
+    return (
+      <div style={{ border: '1px solid #333', padding: '12px', margin: '12px 0' }}>
+        <h4>刚解锁的成就</h4>
+        <ul>
+          {achievements.map((achievement) => (
+            <li key={achievement.key}>{achievement.name}：{achievement.description}</li>
+          ))}
+        </ul>
+        <Link to="/achievements">查看成就系统</Link>
+      </div>
+    )
   }
 
   const renderCoach = () => {
@@ -310,6 +330,7 @@ export default function Level() {
             <pre style={{ background: '#f5f5f5', padding: '12px', marginTop: '12px', whiteSpace: 'pre-wrap' }}>
               {aiHelp}
             </pre>
+            {renderAchievementUnlocks(aiHelpAchievements)}
             <button type="button" onClick={saveAiHelpAsNote}>
               保存导学到知识图谱
             </button>
@@ -364,17 +385,7 @@ export default function Level() {
             <p>提示等级：{result.hintLevel || 0}，本次最高奖励为 {result.maxStars ?? 3} 星。</p>
           )}
           {result.message && <p>{result.message}</p>}
-          {result.achievements && result.achievements.length > 0 && (
-            <div style={{ border: '1px solid #333', padding: '12px', margin: '12px 0' }}>
-              <h4>刚解锁的成就</h4>
-              <ul>
-                {result.achievements.map((achievement) => (
-                  <li key={achievement.key}>{achievement.name}：{achievement.description}</li>
-                ))}
-              </ul>
-              <Link to="/achievements">查看成就系统</Link>
-            </div>
-          )}
+          {renderAchievementUnlocks(result.achievements)}
           {result.actualOutput && (
             <div>
               <h4>程序实际输出</h4>

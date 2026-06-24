@@ -981,6 +981,7 @@ const getAchievementMetrics = (userId) => ({
   completedCount: db.data.progress.filter(item => item.userId === userId && item.completed).length,
   threeStarCount: db.data.progress.filter(item => item.userId === userId && item.completed && item.stars >= 3).length,
   hintCount: (db.data.learningEvents || []).filter(item => item.userId === userId && item.errorType === 'hint_used').length,
+  aiHelpCount: (db.data.learningEvents || []).filter(item => item.userId === userId && item.errorType === 'ai_help_used').length,
   learningEventCount: (db.data.learningEvents || []).filter(item => item.userId === userId).length
 })
 

@@ -799,6 +799,15 @@ const defaultAchievements = [
     category: 'agent',
     metric: 'learningEventCount',
     target: 10
+  },
+  {
+    id: 7,
+    key: 'first_ai_help',
+    name: '请教 AI 导师',
+    description: '第一次使用课前 AI 导学。',
+    category: 'agent',
+    metric: 'aiHelpCount',
+    target: 1
   }
 ]
 
